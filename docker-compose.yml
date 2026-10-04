@@ -1,0 +1,11 @@
+services:
+  krillion:
+    build: .
+    container_name: krillion-bot
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./data:/app/data
