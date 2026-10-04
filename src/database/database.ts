@@ -97,6 +97,22 @@ export function getGuildConfig(
     return statement.get(guildId) as GuildConfig | null;
 }
 
+export function getCurrentPeriodLeaderboard(
+    periodId: number
+): LeaderboardEntry[] {
+    const statement = db.prepare(`
+        SELECT
+            user_id AS userId,
+            score
+        FROM scores
+        WHERE period_id = ?
+        ORDER BY score DESC, submitted_at ASC
+        LIMIT 3
+    `);
+
+    return statement.all(periodId) as LeaderboardEntry[];
+}
+
 export function getWatchedChannel(
     guildId: string
 ): string | null {

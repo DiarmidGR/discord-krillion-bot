@@ -8,6 +8,7 @@ import {
     getGuildConfig,
     setWatchedChannel,
     getPeriodScoreCount,
+    getCurrentPeriodLeaderboard,
 } from "../../database/database.js";
 
 import {
@@ -34,6 +35,10 @@ export async function handleKrillionCommand(
         args[1]?.toLowerCase();
 
     switch (subcommand) {
+        case "leaderboard":
+            await handleLeaderboardCommand(message);
+            break;
+
         case "channel":
             await handleChannelCommand(message);
             break;
@@ -66,6 +71,7 @@ async function handleHelpCommand(
 
         "**Information**\n" +
         "`!krillion status`\n" +
+        "`!krillion leaderboard`\n" +
         "`!krillion help`"
     );
 }
@@ -176,4 +182,76 @@ async function handleStatusCommand(
         `${periodStart.toFormat("MMM d, yyyy h:mm a")} ET\n` +
         `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")} ET\n`
     );
+}
+
+async function handleLeaderboardCommand(
+    message: Message
+): Promise<void> {
+    if (!message.guild) {
+        return;
+    }
+
+    const config =
+        getGuildConfig(
+            message.guild.id
+        );
+
+    if (!config) {
+        await message.reply(
+            "Krillion isn't configured yet.\n\n" +
+            "Use `!krillion channel #channel` first."
+        );
+        return;
+    }
+
+    const period =
+        ensureCurrentPeriod(
+            message.guild.id
+        );
+
+    if (!period) {
+        await message.reply(
+            "I couldn't determine the current Krillion period."
+        );
+        return;
+    }
+
+    if (period.game_number === null) {
+        await message.reply(
+            "🏆 **Current Krillion Leaderboard**\n\n" +
+            "No Krillion results have been recorded yet."
+        );
+        return;
+    }
+
+    const leaderboard =
+        getCurrentPeriodLeaderboard(
+            period.id
+        );
+
+    if (leaderboard.length === 0) {
+        await message.reply(
+            `🏆 **Krillion #${period.game_number} Leaderboard**\n\n` +
+            "No scores have been recorded yet."
+        );
+        return;
+    }
+
+    const medals = ["🥇", "🥈", "🥉"];
+
+    const lines = leaderboard.map(
+        (entry, index) =>
+            `${medals[index]} <@${entry.userId}> — **${entry.score}**`
+    );
+
+    await message.reply({
+        content:
+            `🏆 **Krillion #${period.game_number} Leaderboard**\n\n` +
+            lines.join("\n"),
+        allowedMentions: {
+            users: leaderboard.map(
+                (entry) => entry.userId
+            ),
+        },
+    });
 }
