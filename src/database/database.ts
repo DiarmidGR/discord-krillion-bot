@@ -26,9 +26,7 @@ db.pragma("journal_mode = WAL");
 db.exec(`
     CREATE TABLE IF NOT EXISTS guild_config (
         guild_id TEXT PRIMARY KEY,
-        channel_id TEXT NOT NULL,
-        announcement_hour INTEGER NOT NULL DEFAULT 0,
-        announcement_minute INTEGER NOT NULL DEFAULT 0
+        channel_id TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS periods (
@@ -81,8 +79,6 @@ export function setWatchedChannel(
 export interface GuildConfig {
     guild_id: string;
     channel_id: string;
-    announcement_hour: number;
-    announcement_minute: number;
 }
 
 export function getGuildConfig(
@@ -92,7 +88,6 @@ export function getGuildConfig(
         SELECT
             guild_id,
             channel_id,
-            timezone,
             announcement_hour,
             announcement_minute
         FROM guild_config
@@ -263,7 +258,6 @@ export function getAllGuildConfigs(): GuildConfig[] {
         SELECT
             guild_id,
             channel_id,
-            timezone,
             announcement_hour,
             announcement_minute
         FROM guild_config
@@ -415,41 +409,6 @@ export function getPeriodScoreCount(
     ) as { count: number };
 
     return result.count;
-}
-
-export function setAnnouncementTime(
-    guildId: string,
-    hour: number,
-    minute: number
-): void {
-    const statement = db.prepare(`
-        UPDATE guild_config
-        SET announcement_hour = ?,
-            announcement_minute = ?
-        WHERE guild_id = ?
-    `);
-
-    statement.run(
-        hour,
-        minute,
-        guildId
-    );
-}
-
-export function setTimezone(
-    guildId: string,
-    timezone: string
-): void {
-    const statement = db.prepare(`
-        UPDATE guild_config
-        SET timezone = ?
-        WHERE guild_id = ?
-    `);
-
-    statement.run(
-        timezone,
-        guildId
-    );
 }
 
 db.exec(`

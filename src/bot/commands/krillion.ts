@@ -6,14 +6,12 @@ import {
 
 import {
     getGuildConfig,
-    setAnnouncementTime,
     setWatchedChannel,
     getPeriodScoreCount,
 } from "../../database/database.js";
 
 import {
     ensureCurrentPeriod,
-    getAnnouncementTime,
 } from "../../krillion/periods.js";
 
 import { DateTime } from "luxon";
@@ -40,13 +38,6 @@ export async function handleKrillionCommand(
             await handleChannelCommand(message);
             break;
 
-        case "announcement":
-            await handleAnnouncementCommand(
-                message,
-                args[2]
-            );
-            break;
-
         case "status":
             await handleStatusCommand(message);
             break;
@@ -68,8 +59,10 @@ async function handleHelpCommand(
         "🏆 **Krillion Commands**\n\n" +
 
         "**Configuration** — Manage Server\n" +
-        "`!krillion channel #channel`\n" +
-        "`!krillion announcement 16:00`\n\n" +
+        "`!krillion channel #channel`\n\n" +
+
+        "Winners are announced at the daily Krillion rollover " +
+        "(**12:00 AM ET**). This may be a different local time for you.\n\n" +
 
         "**Information**\n" +
         "`!krillion status`\n" +
@@ -121,92 +114,6 @@ async function handleChannelCommand(
     );
 }
 
-async function handleAnnouncementCommand(
-    message: Message,
-    value?: string
-): Promise<void> {
-    if (!message.guild) {
-        return;
-    }
-
-    if (!message.member?.permissions.has(
-        PermissionFlagsBits.ManageGuild
-    )) {
-        await message.reply(
-            "You need the **Manage Server** permission to configure Krillion."
-        );
-        return;
-    }
-
-    if (!value) {
-        await message.reply(
-            "Please provide an announcement time.\n\n" +
-            "Example: `!krillion announcement 16:00`"
-        );
-        return;
-    }
-
-    const match =
-        value.match(/^(\d{1,2}):(\d{2})$/);
-
-    if (!match) {
-        await message.reply(
-            "Invalid time. Use 24-hour format, for example `16:00`."
-        );
-        return;
-    }
-
-    const hour = Number(match[1]);
-    const minute = Number(match[2]);
-
-    if (
-        hour < 0 ||
-        hour > 23 ||
-        minute < 0 ||
-        minute > 59
-    ) {
-        await message.reply(
-            "Invalid time. Hours must be 0–23 and minutes must be 0–59."
-        );
-        return;
-    }
-
-    const config =
-        getGuildConfig(
-            message.guild.id
-        );
-
-    if (!config) {
-        await message.reply(
-            "Configure a Krillion channel first with `!krillion channel #channel`."
-        );
-        return;
-    }
-
-    setAnnouncementTime(
-        message.guild.id,
-        hour,
-        minute
-    );
-
-    const formatted =
-        DateTime
-            .fromObject(
-                {
-                    hour,
-                    minute,
-                },
-                {
-                    zone: KRILLION_TIMEZONE,
-                }
-            )
-            .toFormat("h:mm a");
-
-    await message.reply(
-        `Krillion announcements will now be sent at **${formatted} ET**.`
-    );
-}
-
 async function handleStatusCommand(
     message: Message
 ): Promise<void> {
@@ -254,18 +161,6 @@ async function handleStatusCommand(
             .fromMillis(period.ends_at)
             .setZone(KRILLION_TIMEZONE);
 
-    const nextAnnouncement =
-        getAnnouncementTime(
-            period,
-            config.announcement_hour,
-            config.announcement_minute
-        );
-
-    const announcementDate =
-        DateTime
-            .fromMillis(nextAnnouncement)
-            .setZone(KRILLION_TIMEZONE);
-
     const game =
         period.game_number === null
             ? "Not detected yet"
@@ -275,13 +170,10 @@ async function handleStatusCommand(
         `📊 **Krillion Status**\n\n` +
         `**Channel:** <#${config.channel_id}>\n` +
         `**Krillion Time:** ET\n` +
-        `**Announcement:** ${announcementDate.toFormat("h:mm a")} ET\n\n` +
         `**Current game:** ${game}\n` +
         `**Scores:** ${scoreCount}\n\n` +
         `**Current period:**\n` +
         `${periodStart.toFormat("MMM d, yyyy h:mm a")} ET\n` +
-        `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")} ET\n\n` +
-        `**Next announcement:**\n` +
-        `${announcementDate.toFormat("MMM d, yyyy h:mm a")} ET`
+        `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")} ET\n`
     );
 }

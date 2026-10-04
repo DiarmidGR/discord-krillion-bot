@@ -13,7 +13,6 @@ import {
 
 import {
     ensureCurrentPeriod,
-    getAnnouncementTime,
 } from "./periods.js";
 
 export function startScheduler(
@@ -36,10 +35,6 @@ async function checkPeriods(
     const configs =
         getAllGuildConfigs();
 
-    /*
-     * Make sure every configured guild
-     * has a period for the current day.
-     */
     for (const config of configs) {
         ensureCurrentPeriod(
             config.guild_id
@@ -52,36 +47,6 @@ async function checkPeriods(
         getExpiredPeriods(now);
 
     for (const period of periods) {
-        const config =
-            getGuildConfig(
-                period.guild_id
-            );
-
-        if (!config) {
-            console.error(
-                `No configuration for guild ` +
-                `${period.guild_id}`
-            );
-
-            continue;
-        }
-
-        /*
-         * The period ended at midnight,
-         * but we don't announce until the
-         * configured announcement time.
-         */
-        const announcementTime =
-            getAnnouncementTime(
-                period,
-                config.announcement_hour,
-                config.announcement_minute
-            );
-
-        if (now < announcementTime) {
-            continue;
-        }
-
         try {
             await finalizePeriod(
                 client,
@@ -96,18 +61,14 @@ async function checkPeriods(
     }
 }
 
-async function finalizePeriod(
+export async function finalizePeriod(
     client: Client,
     period: Period
 ): Promise<void> {
-        console.log(
-        `[Krillion] Finalizing period ${period.id} ` +
-        `(game #${period.game_number})`
-    );
-    /*
-     * A period with no game means nobody
-     * submitted a Krillion result that day.
-     */
+    if (period.announced) {
+        return;
+    }
+
     if (period.game_number === null) {
         markPeriodAnnounced(
             period.id
@@ -127,10 +88,12 @@ async function finalizePeriod(
         );
 
     if (!config) {
-        throw new Error(
+        console.error(
             `No configuration for guild ` +
-            `${period.guild_id}.`
+            `${period.guild_id}`
         );
+
+        return;
     }
 
     const leaderboard =
@@ -143,18 +106,13 @@ async function finalizePeriod(
             config.channel_id
         );
 
-    if (!channel) {
-        throw new Error(
-            `Configured channel ${config.channel_id} ` +
-            `could not be found.`
+    if (!channel || !channel.isSendable()) {
+        console.error(
+            `Could not access channel ` +
+            `${config.channel_id}`
         );
-    }
 
-    if (!channel.isSendable()) {
-        throw new Error(
-            `Configured channel ${config.channel_id} ` +
-            `is not sendable.`
-        );
+        return;
     }
 
     const topThree =
@@ -195,7 +153,7 @@ async function finalizePeriod(
 
         announcement +=
             lines.join("\n");
-}
+    }
 
     await channel.send({
         content: announcement,
@@ -206,13 +164,6 @@ async function finalizePeriod(
         },
     });
 
-    /*
-     * The period has now been announced.
-     *
-     * We do NOT create the next period here.
-     * Periods are calendar days and are created
-     * independently by ensureCurrentPeriod().
-     */
     markPeriodAnnounced(
         period.id
     );
