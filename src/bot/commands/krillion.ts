@@ -7,16 +7,19 @@ import {
 import {
     getGuildConfig,
     setAnnouncementTime,
-    setTimezone,
     setWatchedChannel,
-} from "../../database/database.js";
-
-import { ensureCurrentPeriod, getAnnouncementTime } from "../../krillion/periods.js";
-import {
     getPeriodScoreCount,
 } from "../../database/database.js";
 
+import {
+    ensureCurrentPeriod,
+    getAnnouncementTime,
+} from "../../krillion/periods.js";
+
 import { DateTime } from "luxon";
+
+const KRILLION_TIMEZONE =
+    "America/New_York";
 
 export async function handleKrillionCommand(
     message: Message
@@ -38,11 +41,10 @@ export async function handleKrillionCommand(
             break;
 
         case "announcement":
-            await handleAnnouncementCommand(message, args[2]);
-            break;
-
-        case "timezone":
-            await handleTimezoneCommand(message, args[2]);
+            await handleAnnouncementCommand(
+                message,
+                args[2]
+            );
             break;
 
         case "status":
@@ -67,8 +69,7 @@ async function handleHelpCommand(
 
         "**Configuration** — Manage Server\n" +
         "`!krillion channel #channel`\n" +
-        "`!krillion announcement 16:00`\n" +
-        "`!krillion timezone America/Edmonton`\n\n" +
+        "`!krillion announcement 16:00`\n\n" +
 
         "**Information**\n" +
         "`!krillion status`\n" +
@@ -190,62 +191,19 @@ async function handleAnnouncementCommand(
 
     const formatted =
         DateTime
-            .now()
-            .setZone(config.timezone)
-            .set({
-                hour,
-                minute,
-            })
+            .fromObject(
+                {
+                    hour,
+                    minute,
+                },
+                {
+                    zone: KRILLION_TIMEZONE,
+                }
+            )
             .toFormat("h:mm a");
 
     await message.reply(
-        `Krillion announcements will now be sent at **${formatted}** ` +
-        `(${config.timezone}).`
-    );
-}
-
-async function handleTimezoneCommand(
-    message: Message,
-    timezone?: string
-): Promise<void> {
-    if (!message.guild) {
-        return;
-    }
-
-    if (!message.member?.permissions.has(
-        PermissionFlagsBits.ManageGuild
-    )) {
-        await message.reply(
-            "You need the **Manage Server** permission to configure Krillion."
-        );
-        return;
-    }
-
-    if (!timezone) {
-        await message.reply(
-            "Please provide a timezone.\n\n" +
-            "Example: `!krillion timezone America/Edmonton`"
-        );
-        return;
-    }
-
-    const test =
-        DateTime.now().setZone(timezone);
-
-    if (!test.isValid) {
-        await message.reply(
-            `\`${timezone}\` is not a valid timezone.`
-        );
-        return;
-    }
-
-    setTimezone(
-        message.guild.id,
-        timezone
-    );
-
-    await message.reply(
-        `Krillion timezone set to **${timezone}**.`
+        `Krillion announcements will now be sent at **${formatted} ET**.`
     );
 }
 
@@ -289,17 +247,16 @@ async function handleStatusCommand(
     const periodStart =
         DateTime
             .fromMillis(period.starts_at)
-            .setZone(config.timezone);
+            .setZone(KRILLION_TIMEZONE);
 
     const periodEnd =
         DateTime
             .fromMillis(period.ends_at)
-            .setZone(config.timezone);
+            .setZone(KRILLION_TIMEZONE);
 
     const nextAnnouncement =
         getAnnouncementTime(
             period,
-            config.timezone,
             config.announcement_hour,
             config.announcement_minute
         );
@@ -307,7 +264,7 @@ async function handleStatusCommand(
     const announcementDate =
         DateTime
             .fromMillis(nextAnnouncement)
-            .setZone(config.timezone);
+            .setZone(KRILLION_TIMEZONE);
 
     const game =
         period.game_number === null
@@ -317,14 +274,14 @@ async function handleStatusCommand(
     await message.reply(
         `📊 **Krillion Status**\n\n` +
         `**Channel:** <#${config.channel_id}>\n` +
-        `**Timezone:** ${config.timezone}\n` +
-        `**Announcement:** ${announcementDate.toFormat("h:mm a")}\n\n` +
+        `**Krillion Time:** ET\n` +
+        `**Announcement:** ${announcementDate.toFormat("h:mm a")} ET\n\n` +
         `**Current game:** ${game}\n` +
         `**Scores:** ${scoreCount}\n\n` +
         `**Current period:**\n` +
-        `${periodStart.toFormat("MMM d, yyyy h:mm a")}\n` +
-        `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")}\n\n` +
+        `${periodStart.toFormat("MMM d, yyyy h:mm a")} ET\n` +
+        `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")} ET\n\n` +
         `**Next announcement:**\n` +
-        `${announcementDate.toFormat("MMM d, yyyy h:mm a")}`
+        `${announcementDate.toFormat("MMM d, yyyy h:mm a")} ET`
     );
 }

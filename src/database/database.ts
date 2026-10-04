@@ -27,8 +27,7 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS guild_config (
         guild_id TEXT PRIMARY KEY,
         channel_id TEXT NOT NULL,
-        timezone TEXT NOT NULL DEFAULT 'America/Edmonton',
-        announcement_hour INTEGER NOT NULL DEFAULT 16,
+        announcement_hour INTEGER NOT NULL DEFAULT 0,
         announcement_minute INTEGER NOT NULL DEFAULT 0
     );
 
@@ -82,7 +81,6 @@ export function setWatchedChannel(
 export interface GuildConfig {
     guild_id: string;
     channel_id: string;
-    timezone: string;
     announcement_hour: number;
     announcement_minute: number;
 }

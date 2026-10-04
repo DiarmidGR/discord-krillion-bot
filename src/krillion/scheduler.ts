@@ -74,7 +74,6 @@ async function checkPeriods(
         const announcementTime =
             getAnnouncementTime(
                 period,
-                config.timezone,
                 config.announcement_hour,
                 config.announcement_minute
             );

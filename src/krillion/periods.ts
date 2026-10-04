@@ -6,6 +6,9 @@ import {
     getPeriodForTimestamp,
 } from "../database/database.js";
 
+const KRILLION_TIMEZONE =
+    "America/New_York";
+
 export function ensureCurrentPeriod(
     guildId: string,
     timestamp: number = Date.now()
@@ -18,7 +21,7 @@ export function ensureCurrentPeriod(
 
     const now = DateTime
         .fromMillis(timestamp)
-        .setZone(config.timezone);
+        .setZone(KRILLION_TIMEZONE);
 
     const start = now.startOf("day");
     const end = start.plus({
@@ -54,22 +57,20 @@ export function getAnnouncementTime(
     period: {
         ends_at: number;
     },
-    timezone: string,
     hour: number,
     minute: number
 ): number {
     const periodEnd =
         DateTime
             .fromMillis(period.ends_at)
-            .setZone(timezone);
+            .setZone(KRILLION_TIMEZONE);
 
-    const announcement =
-        periodEnd.set({
+    return periodEnd
+        .set({
             hour,
             minute,
             second: 0,
             millisecond: 0,
-        });
-
-    return announcement.toMillis();
+        })
+        .toMillis();
 }
