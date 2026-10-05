@@ -40,10 +40,12 @@ client.once("clientReady", async (client) => {
         `Logged in as ${client.user.tag}`
     );
 
+    // Backfill messages from the watched channel
     await backfillKrillionMessages(
         client
     );
 
+    // Start the scheduler for daily rollovers
     startScheduler(client);
 });
 

@@ -15,11 +15,6 @@ import {
     ensureCurrentPeriod,
 } from "../../krillion/periods.js";
 
-import { DateTime } from "luxon";
-
-const KRILLION_TIMEZONE =
-    "America/New_York";
-
 export async function handleKrillionCommand(
     message: Message
 ): Promise<void> {
@@ -63,11 +58,8 @@ async function handleHelpCommand(
     await message.reply(
         "🏆 **Krillion Commands**\n\n" +
 
-        "**Configuration** — Manage Server\n" +
+        "**Configuration**\n" +
         "`!krillion channel #channel`\n\n" +
-
-        "Winners are announced at the daily Krillion rollover " +
-        "(**12:00 AM ET**). This may be a different local time for you.\n\n" +
 
         "**Information**\n" +
         "`!krillion status`\n" +
@@ -157,16 +149,6 @@ async function handleStatusCommand(
             period.id
         );
 
-    const periodStart =
-        DateTime
-            .fromMillis(period.starts_at)
-            .setZone(KRILLION_TIMEZONE);
-
-    const periodEnd =
-        DateTime
-            .fromMillis(period.ends_at)
-            .setZone(KRILLION_TIMEZONE);
-
     const game =
         period.game_number === null
             ? "Not detected yet"
@@ -175,12 +157,8 @@ async function handleStatusCommand(
     await message.reply(
         `📊 **Krillion Status**\n\n` +
         `**Channel:** <#${config.channel_id}>\n` +
-        `**Krillion Time:** ET\n` +
         `**Current game:** ${game}\n` +
-        `**Scores:** ${scoreCount}\n\n` +
-        `**Current period:**\n` +
-        `${periodStart.toFormat("MMM d, yyyy h:mm a")} ET\n` +
-        `→ ${periodEnd.toFormat("MMM d, yyyy h:mm a")} ET\n`
+        `**Scores:** ${scoreCount}\n\n`
     );
 }
 
