@@ -2,6 +2,7 @@ import {
     ChannelType,
     Message,
     PermissionFlagsBits,
+    MessageFlags,
 } from "discord.js";
 
 import {
@@ -226,6 +227,7 @@ async function handleLeaderboardCommand(
         content:
             `🏆 **Krillion #${period.game_number} Leaderboard**\n\n` +
             lines.join("\n"),
+        flags: [MessageFlags.SuppressNotifications],// Ensure the leaderboard message doesn't ping users
         allowedMentions: {
             users: leaderboard.map(
                 (entry) => entry.userId
