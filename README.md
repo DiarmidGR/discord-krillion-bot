@@ -6,12 +6,11 @@ A Discord bot that tracks daily **Krillion** scores and automatically announces 
 
 * 🎮 Watches a configured Discord channel for Krillion results
 * 📅 Tracks scores by calendar day
-* 🏆 Announces the top 3 players at a configurable time
+* 🏆 Announces the top 3 players
 * 🔄 Keeps each user's highest score for the day
 * 🥇🥈🥉 Breaks ties by who achieved their score first
 * 🔢 Ignores results from a different Krillion game number
 * 🔁 Backfills the current day's messages when starting
-* 🌎 Configurable timezone and announcement time
 * 💾 SQLite persistence
 * 🐳 Docker support
 
@@ -23,8 +22,6 @@ Requires **Manage Server** permission.
 
 ```text
 !krillion channel #channel
-!krillion announcement 16:00
-!krillion timezone America/Edmonton
 ```
 
 ### Information
@@ -36,7 +33,7 @@ Requires **Manage Server** permission.
 
 ## How It Works
 
-Each calendar day is treated as a separate competition period using the configured timezone.
+Each calendar day is treated as a separate competition period.
 
 The first valid result determines the Krillion game number for that day. Results for other game numbers are ignored.
 
@@ -44,7 +41,7 @@ If a user submits multiple results, only their highest score is kept.
 
 Tied scores are ranked by who achieved the score first.
 
-At the configured announcement time, the bot posts the day's top 3 and mentions the users directly.
+Around 12 AM ET, the bot posts the day's top 3 and mentions the users directly.
 
 Example:
 
@@ -68,8 +65,8 @@ Example:
 ### Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/dsicord-krillion-bot.git
-cd dsicord-krillion-bot
+git clone https://github.com/DiarmidGR/discord-krillion-bot.git
+cd discord-krillion-bot
 npm install
 ```
 
@@ -119,8 +116,6 @@ The SQLite database is stored in `./data/krillion.db` and mounted into the conta
 
 ```text
 !krillion channel #krillion-results
-!krillion timezone America/Edmonton
-!krillion announcement 16:00
 ```
 
 Check the current configuration with:
