@@ -47,6 +47,10 @@ export async function handleKrillionCommand(
             await handleHelpCommand(message);
             break;
 
+        case "github":
+            await handleGithubCommand(message);
+            break;
+
         default:
             await handleHelpCommand(message);
             break;
@@ -65,7 +69,8 @@ async function handleHelpCommand(
         "**Information**\n" +
         "`!krillion status`\n" +
         "`!krillion leaderboard`\n" +
-        "`!krillion help`"
+        "`!krillion help`\n" +
+        "`!krillion github`"
     );
 }
 
@@ -234,4 +239,16 @@ async function handleLeaderboardCommand(
             ),
         },
     });
+}
+
+async function handleGithubCommand(
+    message: Message
+): Promise<void> {
+    if (!message.guild) {
+        return;
+    }
+
+    await message.reply(
+        `The repo for this project is available at https://github.com/DiarmidGR/discord-krillion-bot.`
+    );
 }
