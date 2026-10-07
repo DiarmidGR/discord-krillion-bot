@@ -10,6 +10,7 @@ import {
     setWatchedChannel,
     getPeriodScoreCount,
     getCurrentPeriodLeaderboard,
+    getGuildParticipationStreak,
 } from "../../database/database.js";
 
 import {
@@ -160,11 +161,21 @@ async function handleStatusCommand(
             ? "Not detected yet"
             : `#${period.game_number}`;
 
+    const streak =
+        getGuildParticipationStreak(
+            message.guild.id
+        );
+
+    const streakStatus = streak > 0
+        ? `${streak} ${streak === 1 ? "game" : "games"}`
+        : "No active streak";
+
     await message.reply(
         `📊 **Krillion Status**\n\n` +
         `**Channel:** <#${config.channel_id}>\n` +
         `**Current game:** ${game}\n` +
-        `**Scores:** ${scoreCount}\n\n`
+        `**Scores:** ${scoreCount}\n` +
+        `**Server streak:** ${streakStatus}\n\n`
     );
 }
 

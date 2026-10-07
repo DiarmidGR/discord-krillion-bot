@@ -6,6 +6,7 @@ import {
     getAllGuildConfigs,
     getExpiredPeriods,
     getGuildConfig,
+    getGuildParticipationStreak,
     getPeriodLeaderboard,
     markPeriodAnnounced,
     type Period,
@@ -154,6 +155,18 @@ export async function finalizePeriod(
         announcement +=
             lines.join("\n");
     }
+
+    const participationStreak =
+        getGuildParticipationStreak(
+            period.guild_id,
+            period.game_number
+        );
+
+    announcement += participationStreak > 0
+        ? `\n\n🔥 Server streak: ` +
+          `**${participationStreak} ` +
+          `${participationStreak === 1 ? "game" : "games"}**`
+        : "\n\nNo active server streak.";
 
     await channel.send({
         content: announcement,

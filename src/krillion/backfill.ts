@@ -4,7 +4,9 @@ import {
 } from "discord.js";
 
 import {
+    hasCompletedHistoricalBackfill,
     getAllGuildConfigs,
+    markHistoricalBackfillComplete,
 } from "../database/database.js";
 
 import {
@@ -70,16 +72,18 @@ async function backfillGuild(
         return;
     }
 
-    /*
-     * Only backfill messages from the
-     * beginning of the current calendar day.
-     */
-    const startTimestamp =
-        currentPeriod.starts_at;
+    const historicalBackfillComplete =
+        hasCompletedHistoricalBackfill(
+            guildId,
+            channelId
+        );
+
+    const startTimestamp = historicalBackfillComplete
+        ? currentPeriod.starts_at
+        : null;
 
     let before: string | undefined;
-
-    const messages = [];
+    let messageCount = 0;
 
     while (true) {
         const batch =
@@ -94,15 +98,6 @@ async function backfillGuild(
             break;
         }
 
-        for (const message of batch.values()) {
-            if (
-                message.createdTimestamp >=
-                startTimestamp
-            ) {
-                messages.push(message);
-            }
-        }
-
         const oldest =
             batch.last();
 
@@ -110,9 +105,29 @@ async function backfillGuild(
             break;
         }
 
+        const messages = Array.from(
+            batch.values()
+        )
+            .filter((message) =>
+                startTimestamp === null ||
+                message.createdTimestamp >= startTimestamp
+            )
+            .sort((first, second) =>
+                first.createdTimestamp - second.createdTimestamp
+            );
+
+        for (const message of messages) {
+            processKrillionMessage(
+                message,
+                message.createdTimestamp < currentPeriod.starts_at
+            );
+        }
+
+        messageCount += messages.length;
+
         if (
-            oldest.createdTimestamp <
-            startTimestamp
+            startTimestamp !== null &&
+            oldest.createdTimestamp < startTimestamp
         ) {
             break;
         }
@@ -120,28 +135,18 @@ async function backfillGuild(
         before = oldest.id;
     }
 
-    /*
-     * Discord returns newest → oldest.
-     * Process oldest → newest so the first
-     * Krillion result establishes the game.
-     */
-    messages.sort(
-        (a, b) =>
-            a.createdTimestamp -
-            b.createdTimestamp
-    );
+    if (!historicalBackfillComplete) {
+        markHistoricalBackfillComplete(
+            guildId,
+            channelId
+        );
+    }
 
     console.log(
         `[Krillion] Backfill found ` +
-        `${messages.length} messages for ` +
+        `${messageCount} messages for ` +
         `guild ${guildId}.`
     );
-
-    for (const message of messages) {
-        processKrillionMessage(
-            message
-        );
-    }
 
     console.log(
         `[Krillion] Backfill complete for ` +

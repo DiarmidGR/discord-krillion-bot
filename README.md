@@ -10,7 +10,7 @@ A Discord bot that tracks daily **Krillion** scores and automatically announces 
 * 🔄 Keeps each user's highest score for the day
 * 🥇🥈🥉 Breaks ties by who achieved their score first
 * 🔢 Ignores results from a different Krillion game number
-* 🔁 Backfills the current day's messages when starting
+* 🔁 Backfills channel history once on first start, then the current day on later starts
 * 💾 SQLite persistence
 * 🐳 Docker support
 
@@ -61,6 +61,7 @@ Example:
 * npm
 * Discord bot/application
 * Message Content Intent enabled
+* Read Message History permission in the watched channel
 
 ### Install
 

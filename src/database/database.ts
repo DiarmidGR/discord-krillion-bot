@@ -55,6 +55,12 @@ db.exec(`
             REFERENCES periods(id)
     );
 
+    CREATE TABLE IF NOT EXISTS historical_backfills (
+        guild_id TEXT PRIMARY KEY,
+        channel_id TEXT NOT NULL,
+        completed INTEGER NOT NULL DEFAULT 0
+    );
+
     CREATE UNIQUE INDEX IF NOT EXISTS idx_period_guild_start
     ON periods(guild_id, starts_at);
 `);
@@ -71,6 +77,45 @@ export function setWatchedChannel(
         VALUES (?, ?)
         ON CONFLICT(guild_id)
         DO UPDATE SET channel_id = excluded.channel_id
+    `);
+
+    statement.run(guildId, channelId);
+}
+
+export function hasCompletedHistoricalBackfill(
+    guildId: string,
+    channelId: string
+): boolean {
+    const statement = db.prepare(`
+        SELECT completed
+        FROM historical_backfills
+        WHERE guild_id = ?
+          AND channel_id = ?
+    `);
+
+    const result = statement.get(
+        guildId,
+        channelId
+    ) as { completed: number } | undefined;
+
+    return result?.completed === 1;
+}
+
+export function markHistoricalBackfillComplete(
+    guildId: string,
+    channelId: string
+): void {
+    const statement = db.prepare(`
+        INSERT INTO historical_backfills (
+            guild_id,
+            channel_id,
+            completed
+        )
+        VALUES (?, ?, 1)
+        ON CONFLICT(guild_id)
+        DO UPDATE SET
+            channel_id = excluded.channel_id,
+            completed = 1
     `);
 
     statement.run(guildId, channelId);
@@ -323,6 +368,51 @@ export function getPeriodLeaderboard(
     `);
 
     return statement.all(periodId) as LeaderboardEntry[];
+}
+
+// Function to track the number of consecutive games a given server has participated in. Used in nightly
+// announcements as a streak counter.
+export function getGuildParticipationStreak(
+    guildId: string,
+    gameNumber?: number
+): number {
+    const games = gameNumber === undefined
+        ? db.prepare(`
+            SELECT DISTINCT game_number
+            FROM scores
+            WHERE guild_id = ?
+            ORDER BY game_number DESC
+        `).all(guildId) as { game_number: number }[]
+        : db.prepare(`
+            SELECT DISTINCT game_number
+            FROM scores
+            WHERE guild_id = ?
+              AND game_number <= ?
+            ORDER BY game_number DESC
+        `).all(
+            guildId,
+            gameNumber
+        ) as { game_number: number }[];
+
+    let expectedGame =
+        gameNumber ?? games[0]?.game_number;
+
+    if (expectedGame === undefined) {
+        return 0;
+    }
+
+    let streak = 0;
+
+    for (const game of games) {
+        if (game.game_number !== expectedGame) {
+            break;
+        }
+
+        streak++;
+        expectedGame--;
+    }
+
+    return streak;
 }
 
 export function getLatestPeriod(

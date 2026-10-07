@@ -3,6 +3,7 @@ import { Message } from "discord.js";
 import { parseKrillionMessage } from "./parser.js";
 
 import {
+    markPeriodAnnounced,
     saveScore,
     setPeriodGame,
 } from "../database/database.js";
@@ -12,7 +13,8 @@ import {
 } from "./periods.js";
 
 export function processKrillionMessage(
-    message: Message
+    message: Message,
+    historicalBackfill = false
 ): void {
     if (message.author.bot) {
         return;
@@ -39,6 +41,10 @@ export function processKrillionMessage(
 
     if (!period) {
         return;
+    }
+
+    if (historicalBackfill) {
+        markPeriodAnnounced(period.id);
     }
 
     if (period.game_number === null) {
