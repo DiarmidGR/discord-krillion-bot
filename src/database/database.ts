@@ -370,6 +370,53 @@ export function getPeriodLeaderboard(
     return statement.all(periodId) as LeaderboardEntry[];
 }
 
+export function getUserWinStreak(
+    guildId: string,
+    userId: string,
+    gameNumber: number
+): number {
+    const statement = db.prepare(`
+        WITH ranked_scores AS (
+            SELECT
+                game_number,
+                user_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY game_number
+                    ORDER BY score DESC, submitted_at ASC
+                ) AS rank
+            FROM scores
+            WHERE guild_id = ?
+              AND game_number <= ?
+        )
+        SELECT game_number, user_id
+        FROM ranked_scores
+        WHERE rank = 1
+        ORDER BY game_number DESC
+    `);
+
+    const winners = statement.all(
+        guildId,
+        gameNumber
+    ) as { game_number: number; user_id: string }[];
+
+    let expectedGame = gameNumber;
+    let streak = 0;
+
+    for (const winner of winners) {
+        if (
+            winner.game_number !== expectedGame ||
+            winner.user_id !== userId
+        ) {
+            break;
+        }
+
+        streak++;
+        expectedGame--;
+    }
+
+    return streak;
+}
+
 // Function to track the number of consecutive games a given server has participated in. Used in nightly
 // announcements as a streak counter.
 export function getGuildParticipationStreak(

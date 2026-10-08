@@ -8,6 +8,7 @@ import {
     getGuildConfig,
     getGuildParticipationStreak,
     getPeriodLeaderboard,
+    getUserWinStreak,
     markPeriodAnnounced,
     type Period,
 } from "../database/database.js";
@@ -15,6 +16,15 @@ import {
 import {
     ensureCurrentPeriod,
 } from "./periods.js";
+
+const WIN_STREAK_MILESTONES: Record<number, string> = {
+    5: "Bloodthirsty",
+    10: "Merciless",
+    15: "Relentless",
+    20: "Brutal",
+    25: "Unstoppable",
+    30: "Nuclear",
+};
 
 export function startScheduler(
     client: Client
@@ -167,6 +177,25 @@ export async function finalizePeriod(
           `**${participationStreak} ` +
           `${participationStreak === 1 ? "game" : "games"}**`
         : "\n\nNo active server streak.";
+
+    const winner = topThree[0];
+
+    if (winner) {
+        const winStreak = getUserWinStreak(
+            period.guild_id,
+            winner.userId,
+            period.game_number
+        );
+        const milestone =
+            WIN_STREAK_MILESTONES[winStreak];
+
+        if (milestone) {
+            announcement +=
+                `\n\n🔥 <@${winner.userId}> reached ` +
+                `**${milestone}** with a ` +
+                `**${winStreak}-game win streak**!`;
+        }
+    }
 
     await channel.send({
         content: announcement,
