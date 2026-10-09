@@ -191,7 +191,7 @@ export async function finalizePeriod(
 
         if (milestone) {
             announcement +=
-                `\n\n🔥 <@${winner.userId}> reached ` +
+                `\n\n🔥 <@${winner.userId}> achieved ` +
                 `**${milestone}** with a ` +
                 `**${winStreak}-game win streak**!`;
         }
